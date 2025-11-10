@@ -88,7 +88,7 @@ mylist7.assign({100, 200, 300}); // 初始化列表赋值
 
 list容器的常用操作包括以下几种：
 
-- 元素访问：front()、back()、operator[]、at()
+- 元素访问：front()、back()
 - 元素插入：insert()、push_front()、push_back()
 - 元素删除：erase()、pop_front()、pop_back()
 - 容器操作：size()、empty()、clear()、resize()
@@ -98,3 +98,148 @@ list容器的常用操作包括以下几种：
 - 唯一化操作：unique()
 - 逆置操作：reverse()
 
+list数据访问主要通过front()和back()函数实现，分别用于访问链表的第一个和最后一个元素。不支持随机访问(底层结构式链表、效率低)。需要注意的是迭代器不支持随机访问，只能通过++、--、+=、-=等操作符进行移动。
+
+```cpp
+list<int> mylist = {1, 2, 3, 4, 5};
+int getListItemByIndex(list<int>& mylist, int index) {
+    if (index < 0 || index >= mylist.size()) {
+        throw std::out_of_range("Index out of range");
+    }
+    list<int>::iterator iter = mylist.begin();
+    std::advance(iter, index);
+    return *iter;
+}
+```
+
+insert()有三种重载形式：(迭代器位置、元素数量、(默认元素值))、(迭代器位置、迭代器范围), (迭代器位置、初始化列表)。
+erase()有两种重载形式：(迭代器位置)、(迭代器范围)。
+
+```cpp
+list<int> mylist = {1, 2, 3, 4, 5};
+mylist.insert(mylist.begin(), 100); // 插入一个元素
+mylist.insert(mylist.begin(), 2, 200); // 插入多个元素
+mylist.insert(mylist.begin(), {300, 400, 500}); // 初始化列表
+mylist.insert(mylist.begin(), mylist.begin(), mylist.end()); // 迭代器范围
+
+mylist.erase(mylist.begin()); // 删除一个元素
+list<int>::iterator iter = mylist.erase(mylist.begin(), --mylist.end()); // 删除多个元素 返回删除最后一个元素的下一个位置
+mylist.clear(); // 清空容器
+```
+
+list反转操作可以通过reverse()函数实现，用于将链表中的元素顺序反转。
+
+```cpp
+void reverse() noexcept { // reverse sequence 存储头节点
+    const _Nodeptr _Phead = _Mypair._Myval2._Myhead;
+    _Nodeptr _Pnode       = _Phead;
+
+    for (;;) { // flip pointers in a node 指针交换
+        const _Nodeptr _Pnext = _Pnode->_Next;
+        _Pnode->_Next         = _Pnode->_Prev;
+        _Pnode->_Prev         = _Pnext;
+
+        if (_Pnext == _Phead) {
+            break; // 循环双端节点，一直遍历到头节点
+        }
+
+        _Pnode = _Pnext;
+    }
+}
+```
+
+```cpp
+list<int> mylist = {4, 2, 6, 5, 3, 1};
+
+mylist.sort();  // 排序
+
+void cmp(int a, int b) {
+    return a > b;
+}
+
+mylist.sort(cmp); // 自定义排序
+```
+
+我们进入sort函数的源码分析一下，可以看到sort的输入为`_Pr2 _Pred`，即排序谓词。排序谓词是一个函数对象，用于定义排序的规则。如果不提供排序谓词，默认使用`<`运算符进行排序。
+采用的排序方法为先将链表分成两个子链表，分别对两个子链表进行排序，最后合并两个子链表。我们重点分析一下`_Merge_same`函数。
+
+```cpp
+template <class _Pr2>
+void sort(_Pr2 _Pred) { // order sequence
+    auto& _My_data = _Mypair._Myval2;
+    _Scary_val::_Sort(_My_data._Myhead->_Next, _My_data._Mysize, _STD _Pass_fn(_Pred));
+}
+
+template <class _Pr2>
+static _Nodeptr _Sort(_Nodeptr& _First, const size_type _Size, _Pr2 _Pred) {
+    // order [_First, _First + _Size), return _First + _Size
+    switch (_Size) {
+    case 0:
+        return _First;
+    case 1:
+        return _First->_Next;
+    default:
+        break;
+    }
+
+    auto _Mid        = _Sort(_First, _Size / 2, _Pred);
+    const auto _Last = _Sort(_Mid, _Size - _Size / 2, _Pred);
+    _First           = _Merge_same(_First, _Mid, _Last, _Pred);
+    return _Last;
+}
+```
+
+```cpp
+template <class _Pr2>
+static _Nodeptr _Merge_same(_Nodeptr _First, _Nodeptr _Mid, const _Nodeptr _Last, _Pr2 _Pred) {
+    // Merge the sorted ranges [_First, _Mid) and [_Mid, _Last)
+    // Returns the new beginning of the range (which won't be _First if it was spliced elsewhere)
+    _STL_INTERNAL_CHECK(_First != _Mid && _Mid != _Last);
+    _Nodeptr _Newfirst;
+    if (_DEBUG_LT_PRED(_Pred, _Mid->_Myval, _First->_Myval)) {
+        // _Mid will be spliced to the front of the range
+        _Newfirst = _Mid;
+    } else {
+        // Establish _Pred(_Mid->_Myval, _First->_Myval) by skipping over elements from the first
+        // range already in position.
+        _Newfirst = _First;
+        do {
+            _First = _First->_Next;
+            if (_First == _Mid) {
+                return _Newfirst;
+            }
+        } while (!_DEBUG_LT_PRED(_Pred, _Mid->_Myval, _First->_Myval));
+    }
+
+    for (;;) { // process one run splice
+        auto _Run_start = _Mid;
+        do { // find the end of the "run" of elements we need to splice from the second range into the first
+            _Mid = _Mid->_Next;
+        } while (_Mid != _Last && _DEBUG_LT_PRED(_Pred, _Mid->_Myval, _First->_Myval));
+
+        // [_Run_start, _Mid) goes before _First->_Myval
+        _Unchecked_splice(_First, _Run_start, _Mid);
+        if (_Mid == _Last) {
+            return _Newfirst;
+        }
+
+        // Reestablish _Pred(_Mid->_Myval, _First->_Myval) by skipping over elements from the first
+        // range already in position.
+        do {
+            _First = _First->_Next;
+            if (_First == _Mid) {
+                return _Newfirst;
+            }
+        } while (!_DEBUG_LT_PRED(_Pred, _Mid->_Myval, _First->_Myval));
+    }
+}
+```
+
+_DEBUG_LT_PRED就是排序函数
+
+```cpp
+#define _DEBUG_LT_PRED(pred, x, y) _STD _Debug_lt_pred(pred, x, y)
+```
+
+我们分析一下过程，_Merge_same函数的输入为四个参数，分别是第一个子链表的头节点_First，第二个子链表的头节点_Mid，第二个子链表的尾节点_Last，排序谓词_Pred。函数的返回值是新的头节点_Newfirst。
+函数首先比较两个子链表的头节点，如果第二个子链表的头节点小于第一个子链表的头节点，则将第二个子链表的头节点作为新的头节点_Newfirst。否则，遍历第一个子链表，找到第一个大于第二个子链表头节点的位置，将第二个子链表插入到该位置之前。然后继续处理下一个元素，直到所有元素都被处理完毕。
