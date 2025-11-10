@@ -130,7 +130,7 @@ mylist.clear(); // 清空容器
 list反转操作可以通过reverse()函数实现，用于将链表中的元素顺序反转。
 
 ```cpp
-void reverse() noexcept { // reverse sequence 存储头节点
+void reverse() noexcept { // reverse sequence存储头节点
     const _Nodeptr _Phead = _Mypair._Myval2._Myhead;
     _Nodeptr _Pnode       = _Phead;
 
