@@ -170,13 +170,13 @@ return g[40];
 
 ## 选择排序
 
-选择排序(selection sort)是一种简单直观的排序算法。它首先在未排序序列中找到最小(最大元素)，放置到排序序列的起始位置(末尾位置)。然后从剩余未排序元素中继续寻找最小(最大)元素，放置到已排序序列的末尾。以此类推，直到所有元素均排序完毕。
+选择排序(selection sort)是一种简单直观的排序算法。它首先**在未排序序列中找到最小(最大元素)**，放置到排序序列的起始位置(末尾位置)。然后从剩余未排序元素中继续寻找最小(最大)元素，放置到已排序序列的末尾。以此类推，直到所有元素均排序完毕。
 
-分析一下时间复杂度：选择排序中，当i=0时，需要比较n-1次，当i=1时，需要比较n-2次，依次类推，直到i=n-2时，需要比较1次。因此总的比较次数为(n-1)+(n-2)+...+1 = n(n-1)/2，时间复杂度为O(n^2)。
-空间复杂度：只是用了一个临时变量来进行存储交换，因此空间复杂度为O(1)。
+分析一下时间复杂度：选择排序中，当$i=0$时，需要比较n-1次，当$i=1$时，需要比较$n-2$次，依次类推，直到$i=n-2$时，需要比较1次。因此总的比较次数为$(n-1)+(n-2)+...+1 = n(n-1)/2$，时间复杂度为$O(n^2)$。
+空间复杂度：只是用了一个临时变量来进行存储交换，因此空间复杂度为$O(1)$。
 
 因此很明确了，选择排序不适合大规模数据的排序，一般用于小规模数据的排序。
-优化：每次循环里面都包含一个小循环来寻找最小值（区间最值问题），通过线性树（线性模拟树）来优化，时间复杂度可以降低到O(nlogn)。
+优化：每次循环里面都包含一个小循环来寻找最小值（区间最值问题），通过线性树（线性模拟树）来优化，时间复杂度可以降低到$O(nlogn)$。
 
 ## 冒泡排序
 
@@ -285,6 +285,214 @@ void intsort(vector<int>& v, const  int& m)
 }
 ```
 
+## 归并排序
+
+归并的思想，将两个已经排序的序列合并成一个有序的序列。对于一个非有序的序列，可以拆成两个非有序的序列，然后分别调用归并排序，然会对两个有序序列在执行合并的过程。所以这里的归指的是递归，这里的并指的是合并。
+
+时间复杂度分析：由于归并排序每次都将当前待排序的序列折半成两个子序列递归调用，然后再合并两个有序的子序列，而每次合并两个有序的子序列需要 $O(n)$ 的时间复杂度，所以我们可以列出归并排序运行时间 $T(n)$ 的递归表达式：
+$$T(n)=2T(n/2)+O(n)$$
+根据主定理我们可以得出归并排序的时间复杂度为 $O(nlogn)$
+空间复杂度：$O(n)$。我们需要额外 $O(n)$ 空间的 tmp 数组，且归并排序递归调用的层数最深为 $log_2 n$，所以我们还需要额外的 $O(log n)$ 的栈空间，所需的空间复杂度即为 $O(n+logn)=O(n)$。
+
+
+```cpp
+void merge(vector<int>& v, int l, int m, int r)
+{
+    int n1 = m - l + 1;
+    int n2 = r - m;
+    vector<int> mv(n1 + n2);    // 一个新的列表来存储元素
+    for (int i = 0; i<n1; i++) mv[i] = v[l+i];
+    for (int i = 0; i<n2; i++) mv[i+n1] = v[i + m + 1];
+
+    int i = 0, j = n1, k = l;
+    while(i < n1 && j < n1+n2)
+    {
+        if (mv[i] <= mv[j]) v[k++] = mv[i++];
+        else v[k++] = mv[j++];
+    }
+    // 将未遍历到的元素更新到列表中
+    while(i < n1) v[k++] = mv[i++];
+    while(j < n1+n2) v[k++] = mv[j++];
+}
+// 输入列表 左 右索引 注意都是闭区间
+void sort(vector<int>& v, int l, int r)
+{
+    if (l >= r) return;
+    int m = (r + l)/2; // 中间索引
+    sort(v, l, m);      // 归
+    sort(v, m+1, r);
+    merge(v, l, m, r);  // 并
+}
+```
+
+趁热打铁，再写一下链表的归并排序
+
+```cpp
+// 左闭右开区间
+ListNode* sort(ListNode* head, ListNode* end)
+{
+    if (head == end || head == nullptr) return nullptr;
+    if (head->next = end) {
+        head->next = nullptr;
+        return head;
+    }
+    ListNode *fast = head, *slow = head;
+    while(fast != end)
+    {
+        fast = fast->next;
+        slow = slow->next;
+        if (fast != end) fast = fast->next;
+    }
+    ListNode* mid = slow;
+    return merge(sort(head, mid), sort(++mid, end));
+}
+ListNode* merge(ListNode* head1, ListNode* head2)
+{
+    ListNode* ret = new ListNode(0);// 构造新的链表节点
+    ListNode* temp = ret, *temp1 = head, *temp2 = head2;
+    while(temp1 != NULL && temp2 != NULL)
+    {
+        if (temp1->val <= temp2->val)
+        {
+            temp->next = temp1;
+            temp1 = temp1->next;
+        }else
+        {
+            temp->next = temp2;
+            temp2 = temp2->next;
+        } 
+        temp = temp->next;
+    }
+    if (temp1 != NULL)
+    {
+        temp->next = temp1;
+    }
+    if (temp2 != NULL)
+    {
+        temp->next = temp2;
+    }
+    return ret->next;
+}
+```
+
+## 快速排序
+
+快速排序(Quick Sort)是一种分而治之的排序算法，它通过选择 一个基准元素，将数组分为两个部分，一个部分都比基准小，另一个部分的元素都比基准大，然后对这两个部分在进行快速排序，最终得到有序的数组。具体步骤如下：
+
+- 选择基准元素，从数组中选择一个元素作为基准
+- 分割数组：将比基准小的元素放置到基准的坐标，将比基准大的元素放置到基准的右边
+- 递归排序，对基准左边和右边的子数组分别进行快速排序
+- 重复上述操作，直到子数组的长度变为0或者1
+
+时间复杂度：**最优的情况为每次选择的基准元素正好将数组分为两等分**时，快速排序的时间复杂度为$O(nlogn)$。最坏的情况为当每次选择的基准元素是最大或最小元素时，快速排序的时间复杂度为$O(n^2)$
+快速排序的空间复杂度是$O(logn)$，因为在递归调用中需要使用栈来存储中间结果，这意味着在排序的过程中，最多需要$O(logn)$的额外空间来保存递归调用的栈帧。
+
+```cpp
+int partition(vector<int>& v, int l, int r)
+{
+    int idx = l + rand()%(r - l + 1);
+    swap(v[l], v[idx]);
+    int i = l, j = r, x = v[l];
+    while(i < j)
+    {
+        while(i < j && x < v[j]) j--;
+        if (i < j) swap(v[j], v[i]), i++;
+        while(i < j && x > v[i]) i++;
+        if (i < j) swap(v[j], v[i]), j--;
+    }
+    return i;
+}
+void QuickSort(vector<int>& v, int l, int r)
+{
+    if (l >= r) return;
+    int quick_index = partition(v, l, r);
+    QuickSort(v, l, quick_index-1);
+    QuickSort(v, quick_index+1, r);
+}
+```
+
+## 桶排序
+
+桶排序(Bucket Sort) 是一种基于计数的排序算法，工作原理是将数据分到有限数量的桶子里，然后每个桶再分别排序（有可能再使用别的排序算法或是以递归方式继续使用桶排序进行排序）
+
+算法思想：
+
+- 设置固定数量的空桶
+- 把数据放置到对应的桶中
+- 对每个不为空的桶中的数据进行排序
+- 拼接不为空的桶中的数据，得到结果
+
+复杂度分析：时间复杂度，因为桶排序还需要使用排序算法对桶中的元素进行排序，所以时间复杂度的计算还依赖于采用什么排序方法。空间复杂度，需要将元素放置到桶中，需要存储n个元素到空间中。
+
+```cpp
+#define ArrayType char
+vector<vector<Arraytype>> bucket;
+vector<int> count;
+
+void BucketSort(ArrayType* arr, int n, int max)
+{
+    bucket.clear();
+    count.resize(max);
+    for (int i = 0; i<max; i++) count[i] = 0;
+    for (int i = 0; i<n; i++) count[arr[i]]++;
+    for (int i = 0; i<max; i++) bucket.push_back({});
+    // 将元素放置到对应的桶中
+    for (int i = 0; i<max; i++)
+    {
+        bucket[count[i]].push_back(i);
+    }
+    // 可选择算法对桶中的元素进行排序
+    for (int i = 0; i<max; i++)
+    {
+        if (bucket[i].size() <= 1) continue;
+        sort(bucket[i]);    // 进行排序
+    }
+}
+```
+
+## 基数排序
+
+基数排序（Radix Sort）是一种非比较型排序算法，根据数字的每一位来进行排序。通常用于整数排序，基数排序的基本思想是通过对所有元素进行若干次“分配”和“收集”操作来实现排序。
+
+算法的思想为：
+
+- 获取待排序元素的最大值，并确定其位数
+- 从低位数开始，依次对所有元素进行“分配”和“收集”操作
+- 在每一位上，根据该位上数字的值将元素分配到相应的桶中
+- 对每个桶中的元素进行顺序排序，得到排序后的部分结果
+- 重复上述的步骤，直到所有的位都进行了排序
+
+```cpp
+
+void BaseSort(vector<int>& v, int bit)
+{
+	vector<queue<int>> vv(10);
+	int size = v.size();
+	int divisor = 1;
+	for (int i = 0; i < bit; ++i)
+	{
+		for (int j = 0; j < size; ++j)
+		{
+			int b = v[j]  %  (10*divisor) / divisor; // 获取该位上的值
+			vv[b].push(v[j]);
+		}
+		v.clear();
+		//v.resize(size);
+		for (int k = 0; k < 10; k++)
+		{
+			while (!vv[k].empty())
+			{
+				v.push_back(vv[k].front());
+				vv[k].pop();
+			}
+		}
+		vv.clear();
+		vv.resize(10);
+		divisor *= 10;
+	}
+}
+```
+
 ## 二分查找
 
 二分查找是一种在有序数组中查找特定元素的高效算法。它通过反复将查找范围分成两半，逐步缩小范围，直到找到目标元素或确定目标元素不存在。需要重点关注以下问题：
@@ -295,6 +503,7 @@ void intsort(vector<int>& v, const  int& m)
 4. 为什么有时候会陷入死循环？
 
 ![二分查找示意图](./algrithm_img/二分查找示意.png)
+
 **二分法过程**：初始时刻，定义两个索引，**分别对应-1和length**（如图所示）,左端索引对应红色(小于), 右端索引对应绿色(大于)。
 通过$(l+r)/2$得到**中间的索引坐标**，进行值的比较，如图中所示为红色，那么右索引不变，左索引更新为$(l+r)/2$所求得的中间索引。
 随着不断的迭代，对应的区间会不断的缩小，当区间长度为2时($l+1=r$)，就达到了**跳出循环**的条件。左索引为红色右边界，右索引对应绿色左边界。
